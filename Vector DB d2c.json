@@ -1,0 +1,456 @@
+{
+  "name": "Vector DB d2c",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ab048357-1d88-4d06-9712-142e08f072cb",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "0q0H64wSUFUSQEQi",
+          "name": "Gmail account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-5-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are an email classification assistant for SOLOLIKE, a fictional D2C brand that sells T-shirts.\nYour task is to determine whether an incoming email is customer-related.\nClassify the email as:\n•\tCUSTOMER: Emails about product enquiries, prices, sizing, availability, orders, shipping, delivery, returns, exchanges, refunds, cancellations, payments, damaged or incorrect products, complaints, or other customer service matters. This also includes potential customers who have not yet purchased anything.\n•\tNON_CUSTOMER: Emails unrelated to SOLOLIKE customer enquiries, including job applications, recruitment messages, vendor pitches, marketing promotions, spam, newsletters, and unrelated personal or business communications.\nInstructions:\n1.\tAnalyse the email subject and body.\n2.\tClassify based on the email's actual intent, not merely the presence of words such as \"order\" or \"refund\".\n3.\tIf the email has multiple purposes, classify it as CUSTOMER if it contains a genuine customer enquiry or support request.\n4.\tIf the email is unclear or insufficient to establish a customer-related purpose, classify it as NON_CUSTOMER.\n5.\tDo not answer the email or provide customer support advice.\n6.\tReturn only valid JSON using the exact format below. Do not include Markdown, explanations, or additional fields.\nRequired output format:\nYes\nor\nNo.\n\nReturn \"Yes\" if it belongs to Customer else \"No\". Do not explain your decision and do not generate any extra words.\n\nIncoming email:\nBody:{{ $json.snippet }}\nSubject:{{ $json.Subject }}\n\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "9f7a03db-8637-49c5-a154-1f806a9c2d03",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "91db3a73-a474-4661-8f4f-6e93242e4b7a",
+              "leftValue": "={{ $json.output[0].content[0].text }}",
+              "rightValue": "Yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        592,
+        0
+      ],
+      "id": "afe898bd-23f7-4efd-b2f6-4750f10e9fcc",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Email Body:{{ $('Gmail Trigger').item.json.snippet }}\n\nEmail Subject: {{ $('Gmail Trigger').item.json.Subject }}\n ",
+        "options": {
+          "systemMessage": "You are a customer support assistant for SOLOLIKE, a T-shirt brand.\n\n1. Use the **\"Answer questions with a vector store\"** tool to retrieve relevant information from the Pinecone vector store to answer the customer's enquiry.\n2. Use the **\"Create a draft tool from Gmail\"** to create an email draft replying to the customer.\n3. Base your reply strictly on the information retrieved from the vector store. Never invent information.\n4. If the required information is unavailable, politely inform the customer that the support team will assist further.\n5. Keep the email polite, professional, concise, friendly, and customer-focused.\n6. Address the customer's actual enquiry and use an appropriate email subject and greeting.\n7. Do not send the email. Only create a draft in Gmail."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        800,
+        -96
+      ],
+      "id": "52fa57f0-996b-4ef7-b7c8-d31e05ca07f9",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        800,
+        128
+      ],
+      "id": "ab42af42-f22a-4953-b44e-1b6f1b5e80e3",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Customer support policy document of a company called SoloLike"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+      "typeVersion": 1.1,
+      "position": [
+        1088,
+        64
+      ],
+      "id": "f645f62e-6042-4725-bb2e-ca3b268f476f",
+      "name": "Answer questions with a vector store"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1040,
+        320
+      ],
+      "id": "ca5ad489-fd39-4a47-9b4f-9a034d9e3a11",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "customersupportinformation",
+          "mode": "list",
+          "cachedResultName": "customersupportinformation"
+        },
+        "options": {
+          "pineconeNamespace": "CS-SoloLike-Policy_Docs"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        800,
+        272
+      ],
+      "id": "fe69e61b-384d-4dbd-a286-d52a769c51c5",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "Aq0600uJ7Hbz6S1p",
+          "name": "Pinecone account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "dimensions": 1536
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        896,
+        400
+      ],
+      "id": "215523fd-6988-4974-b8a7-e81bb54fe337",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        80
+      ],
+      "id": "fd7ace68-0947-42a4-8132-48cf461e14a7",
+      "name": "Create a draft in Gmail",
+      "webhookId": "0629e20a-1801-45e5-8f4e-8f69d28ca8ee",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "rsyhmIm48jqnwqbe",
+          "name": "Gmail account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://customersupportinformation-zsy9tph.svc.aped-4627-b74a.pinecone.io/namespaces/CS-SoloLike-Policy_Docs/documents/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Pinecone-API-Version",
+              "value": "2026-07"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  score_by: [\n    {\n      type: \"embed\",\n      field: \"chunk_text\",\n      query: \"What is the return policy for SOLOLIKE T-shirts?\"\n    }\n  ],\n  top_k: 5,\n  include_fields: [\"chunk_text\"]\n} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1200,
+        -144
+      ],
+      "id": "380302f5-0b29-4d8a-8353-d6450d07f926",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "vKNkN8n7uvrPbCyp",
+          "name": "Header Auth account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Gmail Trigger": [
+      {
+        "json": {
+          "id": "1a171b669d5dd331",
+          "threadId": "1a171b669d5dd331",
+          "snippet": "Hi team, I had a very bad experience with the durability of the new T-shirt that i bought last week. I want a refund for my T-Shirt as I don&#39;t like them anymore. Looking forward to the reply and",
+          "payload": {
+            "mimeType": "multipart/alternative"
+          },
+          "sizeEstimate": 7852,
+          "historyId": "326662",
+          "internalDate": "1792909130000",
+          "labels": [
+            {
+              "id": "INBOX",
+              "name": "INBOX"
+            },
+            {
+              "id": "IMPORTANT",
+              "name": "IMPORTANT"
+            },
+            {
+              "id": "CATEGORY_PERSONAL",
+              "name": "CATEGORY_PERSONAL"
+            },
+            {
+              "id": "UNREAD",
+              "name": "UNREAD"
+            }
+          ],
+          "From": "socorro rebello <rebello.socorro@gmail.com>",
+          "Subject": "refund needed for the sololike Tshirt",
+          "To": "\"rebelosocorro0825@gmail.com\" <rebelosocorro0825@gmail.com>"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer questions with a vector store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Answer questions with a vector store",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Answer questions with a vector store",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a draft in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "9b6ed62e-ee3c-427a-ae9e-fee9021e898a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0c916056e1d43b398ce033c6147192ad4e24eb988fa414df143d5a71388340fc"
+  },
+  "nodeGroups": [],
+  "id": "7ghjMwKciOBzOIE2",
+  "tags": []
+}
